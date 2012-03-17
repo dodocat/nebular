@@ -7,7 +7,6 @@
   *******************************************************************************/
 #include <string.h>
 #include "stm32f10x.h"
-//#include "bmp2.c"
 #include "debug_STM32.h"
 #include "fsmc_sram.h"
 #include "hw_config.h"
@@ -20,12 +19,9 @@
 #include "stm32f10x_adc.h"
 #include "stm32f10x_usart.h"
 #include "stm32f10x_spi.h"
-//#include "bmp.h"
-#include "ot.h"
+#include "common.h"
 #include "touch.h"
 #include "24LC02.H"
-#include "a.h"
-//#include "luoyong.h"
 
 
 /////////////////
@@ -33,10 +29,6 @@ void Init_LED(void);
 void Init_NVIC(void);	  
 void Init_KEY(void);
 uint8_t KEY_Scan(void);	
-extern void Delay_Ms(uint16_t time);  
-extern void Delay_Us(uint16_t time); 
-
-
 ////////////////////
 
 u8 SecCnt = 0;
@@ -83,16 +75,6 @@ void ADC_Init_Ex(void);
 void Tim3_ETR_Init(void);
 void Tim4_Init(void);
 
-void DelayMs(u32 nMs)
-{
-	u32 i;
-	
-	for(; nMs !=0; nMs--)
-	{
-		i = 10301;
-		while(i--);
-	}
-}
 
 void Usb_SendData(u8 len)
 {
@@ -103,11 +85,11 @@ void Usb_SendData(u8 len)
 
 int main(void)
 {
-/*		///////////////////////////////////////////
+		///////////////////////////////////////////
 		uint8_t Key;
 		int i;
 		////////////////////////////////////////////////
-*/
+
         brightness = 0x40;//亮度
         contrast   = 0x70;//对比度
         saturation = 0x40;//饱和度
@@ -116,32 +98,37 @@ int main(void)
 
 	SystemInit();
 	//GPIOInit();
-/*	 
+	 
 	 //chumo改版加入
+ 	//Touch_Initializtion();
+
 	Init_NVIC();				//中断向量表注册函数 	
-		Init_LED();					//LED初始化
+	Init_LED();					//LED初始化
 	Init_KEY();					//按键初始化
-		Init_IIC();					//24LC02初始化
+	Init_IIC();					//24LC02初始化
 	Init_TOUCH();				// 触摸屏配置
+	//Touch_Initializtion();
+
 
 	//////////
- */
+
 	UART3_Init(115200);
 	PrintStr("=========12345========\r\n");
 	
 	//ADC_Init_Ex();
 	//Tim3_ETR_Init();
-	Tim4_Init();
+	//Tim4_Init();
 	//CAN1_Init(250);
 	
-	USB_Init();
+//	USB_Init();
 	
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);
+//	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);
   
   	/* Configure FSMC Bank1 NOR/SRAM3 */
   	//FSMC_SRAM_Init();
-  	//DelayMs(300);
+  	DelayMs(300);
   	//InitSSD1963();
+	//LcdInitTest();
 	LcdInit();
   	
 	LcdClear(GRAY0);
@@ -167,34 +154,52 @@ int main(void)
 	LcdPrintStr("确认",442,432,BLACK,GREEN);
 	LcdFillRec(200,100,502,190,DGREEN);
 	DisplayButtonUp(190,90,512,475);
+//	Pen_Point.Key_Sta==Key_Up;
 
-
-	LcdPrint16bitBmp(gImage_a, 600, 90, 40, 92);
 
 	//LcdPrint16bitBmp(gImage, 16, 16, 490, 368 );
 	while(1)
 	{
-	LED1=!LED1;
-	DelayMs(50);
-/*	 ////////////////////////////////////////
+//	if(Pen_Point.Key_Sta==Key_Down)
+//	{
+//		LcdPrintf( 16,16,BLUE,WHITE,"%d",ADS_Read_AD(CMD_RDX));
+//		LcdPrintf( 16,32,BLUE,WHITE,"%d",ADS_Read_AD(CMD_RDY));
+//	}
+	//LcdPrintf( 16,32,BLUE,WHITE,"%d",Touch_GetPhyY());
+	//LcdPrintf( 16,16,BLUE,WHITE,"%d",Touch_GetPhyX());
+
+//	DelayMs(200);
+//	LED1 = ~LED1;
+
+
+	//LED1=~LED1;
+	//DelayMs(50);
+	 ////////////////////////////////////////
 		Key=KEY_Scan();
 		if(Pen_Point.Key_Sta==Key_Down)//触摸屏被按下
 		{
 			Pen_Int_Set(0);				//关闭中断
 			do
 			{
+				LcdPrintf( 16,16,BLUE,WHITE,"%d",ADS_Read_AD(CMD_RDX));
+				LcdPrintf( 16,32,BLUE,WHITE,"%d",ADS_Read_AD(CMD_RDY));
+
 				Convert_Pos();
 				Pen_Point.Key_Sta=Key_Up;
+				//GPIOC->ODR|=1<<5;//临时添加
+			//	LcdPrintf(16,16,BLUE,BLACK,"%d\n",Pen_Point.X);
+			//	LcdPrintf(16,32,BLUE,BLACK,"%d\n",Pen_Point.Y);
 				if(Pen_Point.X0>216&&Pen_Point.Y0<48)LcdClear(RED);//清除
 				else 
 				{
 					Draw_Big_Point(Pen_Point.X0,Pen_Point.Y0);//画图	    
 					GPIOC->ODR|=1<<5;    //PC5 上拉	   
-				}
+				}  
+
 			}while(PEN==0);//如果PEN一直有效,则一直执行
 			Pen_Int_Set(1);//开启中断
 		}
-		else Delay_Ms(1);
+		else DelayMs(1);
 		if(Key==USER)//USER按下,则执行校准程序
 		{
 			LcdClear(BlackColor);//清屏
@@ -202,8 +207,8 @@ int main(void)
 			Save_Adjdata();	 
 			LcdClear(RED);
 		} 
-		i++;
-		if(i==200)
+		i++;  
+		if(i==1)
 		{
 			i=0;
 			LED1=~LED1;
@@ -211,24 +216,24 @@ int main(void)
 	}
 	 ///////////////////////////////////
 
- */
-//                if(_SEC_)
-//		{
-//			_SEC_ = 0;
+ 	/*
+       if(_SEC_)
+		{
+			_SEC_ = 0;
 			
-//			GPIO_WriteBit(GPIOC, GPIO_Pin_6, (BitAction)(1 - GPIO_ReadOutputDataBit(GPIOC, GPIO_Pin_6)));
+			GPIO_WriteBit(GPIOC, GPIO_Pin_6, (BitAction)(1 - GPIO_ReadOutputDataBit(GPIOC, GPIO_Pin_6)));
 
-//                        LcdPrintf(300,460,BLACK,GRAY0,"%03d",i);
+                        LcdPrintf(300,460,BLACK,GRAY0,"%03d",i);
                         //i += 10;
-//			SetSensors();
+			SetSensors();
 			
-//			for(u8 i=1; i<=16; i++)
-//				Printf("No.%d=%d,",i,GetSensorVoltage(i));
-//			PrintStr("\r\n");
-//		}
-//		UART1_SendByte(0x55);
-//		DelayMs(1);
-	}
+			for(u8 i=1; i<=16; i++)
+				Printf("No.%d=%d,",i,GetSensorVoltage(i));
+			PrintStr("\r\n");
+		}
+		UART1_SendByte(0x55);
+		DelayMs(1);	
+	}				  */
 }
 
 void GPIOInit(void)
@@ -476,7 +481,7 @@ uint8_t KEY_Scan(void)
 	static uint8_t KEY_Status =1; //定义一个按键标志位
 	if(KEY_Status&&(KEY_USER==0||KEY_S==0||KEY_D==0||KEY_L==0||KEY_R==0||KEY_U==0))//判断是否有按键按下
 	{
-		Delay_Ms(10);//去抖动 
+		DelayMs(10);//去抖动 
 		KEY_Status =0;
 		if(KEY_USER==0) return 1;	  //按键USER按下返回1
 		else if(KEY_S==0) return 2;	  //按键JOY-SEN按下返回1
@@ -515,29 +520,3 @@ void Init_NVIC(void)
 	NVIC_Init(&NVIC_InitStructure);							  // 初始化中断线4
 }
 
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-** 函数名称: Delay_Ms_Ms
-** 功能描述: 延时1MS (可通过仿真来判断他的准确度)			
-** 参数描述：time (ms) 注意time<65535
-** 作  　者: Dream
-** 日　  期: 2011年6月20日
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-void Delay_Ms(uint16_t time)  //延时函数
-{ 
-	uint16_t i,j;
-	for(i=0;i<time;i++)
-  		for(j=0;j<10260;j++);
-}
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-** 函数名称: Delay_Ms_Us
-** 功能描述: 延时1us (可通过仿真来判断他的准确度)
-** 参数描述：time (us) 注意time<65535				 
-** 作  　者: Dream
-** 日　  期: 2011年6月20日
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-void Delay_Us(uint16_t time)  //延时函数
-{ 
-	uint16_t i,j;
-	for(i=0;i<time;i++)
-  		for(j=0;j<9;j++);
-}

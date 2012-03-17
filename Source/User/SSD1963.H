@@ -50,5 +50,6 @@
 
 extern void InitSSD1963(void);
 extern void LcdInit(void);
+extern void LcdInitTest(void);
 #endif
 

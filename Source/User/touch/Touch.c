@@ -16,12 +16,214 @@
 #include "math.h"
 #include "ssd1963.h"
 
-#include "ot.h"
+#include "common.h"
 
 u16 TextColor;
 u16 BlackColor;
 
 Pen_Holder Pen_Point;	// 定义笔实体 
+void SPI_CS(u8 a)
+{
+  // PD6 -> TS_nCS
+  if (a)
+    GPIO_SetBits(GPIOD,GPIO_Pin_6);
+  else
+    GPIO_ResetBits(GPIOD,GPIO_Pin_6);
+}
+
+void SPI_DIN(u8 a)
+{
+  // PD7 -> TS_DIN
+  if (a)
+    GPIO_SetBits(GPIOD,GPIO_Pin_7);
+  else
+    GPIO_ResetBits(GPIOD,GPIO_Pin_7);
+}
+
+void SPI_CLK(u8 a)
+{
+  // PD5 -> TS_CLK
+  if (a)
+    GPIO_SetBits(GPIOD,GPIO_Pin_5);
+  else
+    GPIO_ResetBits(GPIOD,GPIO_Pin_5);
+}
+
+u8 SPI_DOUT(void)
+{
+  // PD10 -> TS_DOUT
+  return GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_10);
+}
+
+void SPI_delay(u16 i)
+{
+  u16 k;
+  for (k=0;k<i;k++);
+}
+
+void Touch_Start(void)
+{
+	SPI_CLK(0);
+	SPI_CS(1);
+	SPI_DIN(1);
+	SPI_CLK(1);
+	SPI_CS(0);
+}
+
+void Touch_Write(u8 d)
+{
+	u8 buf, i ;
+	
+  SPI_CLK(0);
+	for( i = 0; i < 8; i++ )
+	{
+    buf = (d >> (7-i)) & 0x1 ;
+    SPI_DIN(buf);
+    SPI_CLK(0);
+    SPI_CLK(1);
+    SPI_CLK(0);
+	}
+}
+
+u16  Touch_Read(void)
+{
+	u16 buf ;
+	u8 i ;
+
+	buf=0;
+	for( i = 0; i < 12; i++ )
+	{
+		buf = buf << 1 ;
+		SPI_CLK(1);
+		SPI_CLK(0);			
+		if ( SPI_DOUT() )	
+		{
+			buf = buf + 1 ;
+		}
+	}
+	return( buf ) ;
+}
+
+u8  Touch_Busy(void)
+{
+  // PD8 -> TS_BUSY
+  return GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_8);
+}
+
+u8  Touch_PenIRQ(void)
+{
+  // PD9 -> TS_nPENIRQ
+  return GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_9);
+}
+
+void Touch_Initializtion()
+{
+  GPIO_InitTypeDef GPIO_InitStructure;
+
+  /*****************************
+  **    硬件连接说明          **
+  ** STM32         TSC2046    **
+  ** PD3    <----> nPENIRQ    ** i
+  ** PD4    <----> BUSY       ** i
+  ** PC6    <----> DCLK       ** o
+  ** PC5    <----> DIN        ** o
+  ** PC4    <----> DOUT       ** i
+  ** PC7    <----> nCS        ** o
+  ******************************/
+// PD5 -> TS_CLK  PD6 -> TS_nCS  PD7 -> TS_DIN  PD8 -> TS_BUSY  PD9 -> TS_nPENIRQ  PD10 -> TS_DOUT
+
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD,ENABLE);
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_8 | GPIO_Pin_10;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+  GPIO_Init(GPIOD, &GPIO_InitStructure);
+  
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD,ENABLE);
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+  GPIO_Init(GPIOD, &GPIO_InitStructure);
+}
+
+u16 _AD2X(int adx)
+{
+  u16 sx=0;
+  int r = adx - 280;
+  r *= 239;
+  sx=r / (3740 - 280);
+  if (sx<=0 || sx>240)
+    return 0;
+  return sx;
+}
+
+u16 _AD2Y(int ady)
+{
+  u16 sy=0;
+  int r = ady - 230;
+  r *= 319;
+  sy=r/(3720 - 230);
+  if (sy<=0 || sy>320)
+    return 0;
+  return sy;
+}
+
+u16  Touch_MeasurementX(void)
+{
+  u8 i;
+  u16 p=0;
+  for (i=0;i<8;i++)
+  {
+    p+=Touch_GetPhyX();
+    SPI_delay(1000);
+  }
+  p>>=3;
+  
+  return ( p );
+}
+
+u16  Touch_MeasurementY(void)
+{
+  u8 i;
+  u16 p=0;
+  for (i=0;i<8;i++)
+  {
+    p+=Touch_GetPhyY();
+    SPI_delay(1000);
+  }
+  p>>=3;
+  
+  return ( p );
+}
+
+u16  Touch_GetPhyX(void)
+{
+  if (Touch_PenIRQ()) return 0;
+  Touch_Start();
+  Touch_Write(0x00);
+  Touch_Write(CH_X);
+  while(!Touch_Busy());
+  return (Touch_Read());
+}
+
+u16  Touch_GetPhyY(void)
+{
+  if (Touch_PenIRQ()) return 0;
+  Touch_Start();
+  Touch_Write(0x00);
+  Touch_Write(CH_Y);
+  while(!Touch_Busy());
+  return (Touch_Read());
+}
+/*
+u16 Dx(u16 xx)
+{
+  return (_AD2X(xx));
+}
+u16 Dy(u16 yy)
+{
+  return (_AD2Y(yy));
+}
+*/
 
 //SPI写数据
 //向7843写入1byte数据   
@@ -137,7 +339,7 @@ uint8_t Read_TP_Once(void)
 	while(PEN==0&&t<=250)
 	{
 		t++;
-		Delay_Ms(10);
+		DelayMs(10);
 	};
 	Pen_Int_Set(1);//开启中断		 
 	if(t>=250)return 0;//按下2.5s 认为无效
@@ -148,26 +350,28 @@ uint8_t Read_TP_Once(void)
 //与LCD部分有关的函数  
 //画一个触摸点
 //用来校准用的
-void Drow_Touch_Point(uint8_t x,uint16_t y)
+void Drow_Touch_Point(uint16_t x,uint16_t y)
 {
-	//Disp_LCDLine(x-12,y,x+13,y);//横线
-	//Disp_LCDLine(x,y-12,x,y+13);//竖线
-	//Disp_LCDPoint(x+1,y+1);
-	//Disp_LCDPoint(x-1,y+1);
-	//Disp_LCDPoint(x+1,y-1);
-	//Disp_LCDPoint(x-1,y-1);
-	//Disp_LCDCircle(x,y,6);//画中心圈
-	LcdPrintDot(x,y,DGREEN);
+	u16 colorT = BLUE;
+	LcdPrintHorz(x-12,y,25,colorT);//横线
+	LcdPrintVert(x,y-12,25,colorT);//竖线
+	LcdPrintDot(x+1,y+1,colorT);
+	LcdPrintDot(x-1,y+1,colorT);
+	LcdPrintDot(x+1,y-1,colorT);
+	LcdPrintDot(x-1,y-1,colorT);
+	LcdPrintCircle(x,y,6,colorT);//画中心圈
+	LcdPrintDot(x,y,colorT);
 }	  
 //画一个大点
 //2*2的点			   
 void Draw_Big_Point(uint16_t x,uint16_t y)
-{	    
-	//Disp_LCDPoint(x,y);//中心点 
-	//Disp_LCDPoint(x+1,y);
-	//Disp_LCDPoint(x,y+1);
-	//Disp_LCDPoint(x+1,y+1);
-	LcdFillRec(x,y,x+5,y+5,DGREEN);	 	  	
+{	
+	u16 colorT = BLUE;    
+	LcdPrintDot(x,y,colorT);//中心点 
+	LcdPrintDot(x+1,y,colorT);
+	LcdPrintDot(x,y+1,colorT);
+	LcdPrintDot(x+1,y+1,colorT);
+	LcdFillRec(x,y,x+5,y+5,colorT);	 	  	
 }
 //////////////////////////////////////////////////
 
@@ -211,15 +415,15 @@ void Touch_Adjust(void)
 			{			   
 				case 1:
 					LcdClear(BlackColor);//清屏 
-					Drow_Touch_Point(220,20);//画点2
+					Drow_Touch_Point(780,20);//画点2
 					break;
 				case 2:
 					LcdClear(BlackColor);//清屏 
-					Drow_Touch_Point(20,300);//画点3
+					Drow_Touch_Point(20,460);//画点3
 					break;
 				case 3:
 					LcdClear(BlackColor);//清屏 
-					Drow_Touch_Point(220,300);//画点4
+					Drow_Touch_Point(780,460);//画点4
 					break;
 				case 4:	 	//全部四个点已经得到
 	    		    		//对边相等
@@ -241,7 +445,7 @@ void Touch_Adjust(void)
 						LcdClear(BlackColor);//清屏 
 						Drow_Touch_Point(20,20);
 						continue;
-					}
+					} 
 					tem1=abs(pos_temp[0][0]-pos_temp[2][0]);//x1-x3
 					tem2=abs(pos_temp[0][1]-pos_temp[2][1]);//y1-y3
 					tem1*=tem1;
@@ -282,16 +486,26 @@ void Touch_Adjust(void)
 						Drow_Touch_Point(20,20);
 						continue;
 					}//正确了
+					 
+
 					//计算结果
+					/*
 					Pen_Point.xfac=(float)200/(pos_temp[1][0]-pos_temp[0][0]);//得到xfac		 
 					Pen_Point.xoff=(240-Pen_Point.xfac*(pos_temp[1][0]+pos_temp[0][0]))/2;//得到xoff
 						  
 					Pen_Point.yfac=(float)280/(pos_temp[2][1]-pos_temp[0][1]);//得到yfac
-					Pen_Point.yoff=(320-Pen_Point.yfac*(pos_temp[2][1]+pos_temp[0][1]))/2;//得到yoff  
+					Pen_Point.yoff=(320-Pen_Point.yfac*(pos_temp[2][1]+pos_temp[0][1]))/2;//得到yoff  	*/
+
+					Pen_Point.xfac=(float)760/(pos_temp[1][0]-pos_temp[0][0]);//得到xfac		 
+					Pen_Point.xoff=(800-Pen_Point.xfac*(pos_temp[1][0]+pos_temp[0][0]))/2;//得到xoff
+						  
+					Pen_Point.yfac=(float)440/(pos_temp[2][1]-pos_temp[0][1]);//得到yfac
+					Pen_Point.yoff=(480-Pen_Point.yfac*(pos_temp[2][1]+pos_temp[0][1]))/2;//得到yoff  	
+
 					TextColor=DGREEN;
 					LcdClear(BLACK);//清屏
 					LcdPrintStr("Touch Screen Adjust OK!",35,110,WHITE,BLACK);//校正完成
-					Delay_Ms(1200);
+					DelayMs(1200);
 					LcdClear(BLACK);//清屏   
 					return;//校正完成				 
 			}

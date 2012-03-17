@@ -16,14 +16,14 @@ unsigned int  VDP=479;
 unsigned int  FPS=23;
 unsigned char VPW=3;
 
-//#define DISP_HOR_RESOLUTION		800
-//#define DISP_VER_RESOLUTION		480
-//	#define DISP_HOR_PULSE_WIDTH		1
-//	#define DISP_HOR_BACK_PORCH		210
-//	#define DISP_HOR_FRONT_PORCH		45
-////	#define DISP_VER_PULSE_WIDTH		1
-//	#define DISP_VER_BACK_PORCH		34	
-//	#define DISP_VER_FRONT_PORCH		10
+	#define DISP_HOR_RESOLUTION		800
+	#define DISP_VER_RESOLUTION		480
+	#define DISP_HOR_PULSE_WIDTH		1
+	#define DISP_HOR_BACK_PORCH		210
+	#define DISP_HOR_FRONT_PORCH		45
+	#define DISP_VER_PULSE_WIDTH		1
+	#define DISP_VER_BACK_PORCH		34	
+	#define DISP_VER_FRONT_PORCH		10
 	
 	#define HT (DISP_HOR_RESOLUTION+DISP_HOR_PULSE_WIDTH+DISP_HOR_BACK_PORCH+DISP_HOR_FRONT_PORCH)
 	#define HPS (DISP_HOR_PULSE_WIDTH+DISP_HOR_BACK_PORCH)
@@ -104,14 +104,16 @@ void InitSSD1963(void)
 	
 	//Set LCD mode, varies from individual manufacturer
 	WriteCommand(0xB0);
-	WriteData(0x10);//0x10				// set 18-bit for 7" panel TY700TFT800480
-	WriteData(0x80);				// set TTL mode
+	WriteData(0x00);//0x10				// set 18-bit for 7" panel TY700TFT800480
+	WriteData(0x00);//0x80				// set TTL mode
 	WriteData((DISP_HOR_RESOLUTION-1)>>8); 		// Set LCD panel size(DISP_HOR_RESOLUTION = 800) H
 	WriteData(DISP_HOR_RESOLUTION-1);		// Set LCD panel size(DISP_HOR_RESOLUTION = 800) L
 	WriteData((DISP_VER_RESOLUTION-1)>>8);		// Set LCD panel size(DISP_VER_RESOLUTION = 480) H
 	WriteData(DISP_VER_RESOLUTION-1);		// Set LCD panel size(DISP_VER_RESOLUTION = 480) L
 	WriteData(0x00);//0x00				// RGB sequence	
 	
+
+
 	PrintStr("ok: =======10 80 03 1f 01 df 00============\r\n");
 	WriteCommand(0xB1);
 	Printf("B10=%02x\r\n",ReadData());
@@ -302,6 +304,13 @@ void FSMC_LCD_Init()
 
   	/* Enable FSMC Bank1_SRAM Bank */
   	FSMC_NORSRAMCmd(FSMC_Bank1_NORSRAM1, ENABLE);  
+}
+
+void LcdInitTest(void)
+{
+	FSMC_GPIO_Configuration();
+	FSMC_LCD_Init();
+	InitSSD1963();
 }
 /*****************************************************************************
 ** º¯ÊýÃû³Æ: LCD_Init

@@ -13,7 +13,7 @@
 /* Includes ------------------------------------------------------------------*/
 //#include "usually.h"
 #include "24LC02.h" 
-#include "ot.h"
+#include "common.h"
 //extern void Delay_Ms(uint16_t time);  //延时函数
 extern void Delay_Us(uint16_t time);  //延时函数
 
@@ -64,7 +64,7 @@ void AT24CXX_WriteOneByte(uint16_t WriteAddr,uint8_t DataToWrite)
 	IIC_Send_Byte(DataToWrite);     //发送字节							   
 	IIC_Wait_Ack();  		    	   
     IIC_Stop();//产生一个停止条件 
-	Delay_Ms(10);	 
+	DelayMs(10);	 
 }
 //在AT24CXX里面的指定地址开始写入长度为Len的数据
 //该函数用于写入16bit或者32bit的数据.

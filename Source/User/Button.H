@@ -5,15 +5,6 @@
 #include "stm32f10x.h"
 
 
-#define   BLACK    0x0000      	//黑色
-#define   BLUE     0xF800      	//蓝色
-#define   RED      0x001F      	//红色
-#define   GRAY0    0xCE9A   	//灰色0 3165 00110 001011 00101
-#define   GRAY1    0x8410      	//灰色1      00000 000000 00000
-#define   GRAY2    0x4208      	//灰色2  1111111111011111
-#define   WHITE    0xFFFF	//白色   110010 110100 110100
-
-#define   YELLOW   0xF800      	//黄色07FF
 
 
 struct BUTTONDEFINE

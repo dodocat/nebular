@@ -34,7 +34,8 @@ extern Pen_Holder Pen_Point;
 /* ADS7843/7846/UH7843/7846/XPT2046/TSC2046 指令集 */
 #define CMD_RDY 0x90  //0B10010000即用差分方式读X坐标
 #define CMD_RDX	0xD0  //0B11010000即用差分方式读Y坐标  
-
+#define CH_X 0xd0
+#define CH_Y 0x90
 #define ADJ_SAVE_ENABLE	    
 
   
@@ -49,8 +50,16 @@ uint16_t ADS_Read_XY(uint8_t xy);
 uint8_t Read_TP_Once(void);
 uint8_t Read_ADS2(uint16_t *x,uint16_t *y);
 uint8_t Read_ADS(uint16_t *x,uint16_t *y);
+
+void Touch_Initializtion(void);
+u16  Touch_GetPhyX(void);
+u16  Touch_GetPhyY(void);
+u16  Touch_MeasurementX(void);
+u16  Touch_MeasurementY(void);
+
+
 void Draw_Big_Point(uint16_t x,uint16_t y);
-void Drow_Touch_Point(uint8_t x,uint16_t y);
+void Drow_Touch_Point(uint16_t x,uint16_t y);
 
 void Save_Adjdata(void);
 uint8_t Get_Adjdata(void);

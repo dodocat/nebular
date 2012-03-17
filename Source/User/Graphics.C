@@ -301,8 +301,71 @@ void LcdPrint16bitBmp(const u8* bmpbit,u16 x,u16 y,u16 widht,u16 height)
            	WriteData(bmpbit[ip]<<8|bmpbit[ip+1]);
 }
 //
+void LcdPrintLine (u16 x1, u16 y1, u16 x2, u16 y2,u16 color)
+{
+	uint16_t t; 
+	int xerr=0,yerr=0,delta_x,delta_y,distance; 
+	int incx,incy,uRow,uCol; 
 
-void LcdPrintASCIIinModel(u16 x, u16 y, u16 width, u16 height, )
+	delta_x=x2-x1; 				//计算坐标增量 
+	delta_y=y2-y1; 
+	uRow=x1; 
+	uCol=y1; 
+	if(delta_x>0)incx=1; 		//设置单步方向 
+	else if(delta_x==0)incx=0;	//垂直线 
+	else {incx=-1;delta_x=-delta_x;} 
+	if(delta_y>0)incy=1; 
+	else if(delta_y==0)incy=0;	//水平线 
+	else{incy=-1;delta_y=-delta_y;} 
+	if( delta_x>delta_y)distance=delta_x; //选取基本增量坐标轴 
+	else distance=delta_y; 
+	for(t=0;t<=distance+1;t++ )	//画线输出 
+	{  
+		LcdPrintDot(uRow,uCol,color);//画点 
+		xerr+=delta_x ; 
+		yerr+=delta_y ; 
+		if(xerr>distance) 
+		{ 
+			xerr-=distance; 
+			uRow+=incx; 
+		} 
+		if(yerr>distance) 
+		{ 
+			yerr-=distance; 
+			uCol+=incy; 
+		} 
+	}  	
+}
+void LcdPrintCircle(u16 x0,u16 y0,u16 r,u16 color)
+{
+	u16 a,b;
+	int di;
+	a=0;b=r;	  
+	di=3-(r<<1);             //判断下个点位置的标志
+	while(a<=b)
+	{
+		LcdPrintDot(x0-b,y0-a,color);             //3           
+		LcdPrintDot(x0+b,y0-a,color);             //0           
+		LcdPrintDot(x0-a,y0+b,color);             //1       
+		LcdPrintDot(x0-b,y0-a,color);             //7           
+		LcdPrintDot(x0-a,y0-b,color);             //2             
+		LcdPrintDot(x0+b,y0+a,color);             //4               
+		LcdPrintDot(x0+a,y0-b,color);             //5
+		LcdPrintDot(x0+a,y0+b,color);             //6 
+		LcdPrintDot(x0-b,y0+a,color);             
+		a++;
+		//使用Bresenham算法画圆     
+		if(di<0)di +=4*a+6;	  
+		else
+		{
+			di+=10+4*(a-b);   
+			b--;
+		} 
+		LcdPrintDot(x0+a,y0+b,color);
+	}
+}
+
+//void LcdPrintASCIIinModel(u16 x, u16 y, u16 width, u16 height, )
 
 
 
