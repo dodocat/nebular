@@ -30,7 +30,8 @@
 //#define   YELLOW       0xFFE0                    // »ÆÉ«£º 255, 255, 0           
 #define   WHITE        0xFFFF                    // °×É«£º 255, 255, 255         
 
-
+extern const struct __ASC_ZK sysEnzk[];
+extern const struct __HZK_ZK sysHzzk[];
 
 extern void LcdSetArea(u16 x1, u16 y1, u16 x2, u16 y2);
 extern void LcdPrintDot(u16 x, u16 y, u16 color);
